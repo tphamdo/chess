@@ -31,7 +31,8 @@
     });
 
     function onDrop(source, target, piece) {
-      $.get('/move', { "source":source, "target":target }, function(res, status, xhr) {
+      if (piece[0] == 'b') return "snapback"; // only allow human to move white pieces
+      $.get('/move', { "source":source, "target":target, "piece": piece }, function(res, status, xhr) {
         if (xhr.getResponseHeader("gameover") == "True") {
           document.getElementById("subtext").innerText = "Game over!";
         }
@@ -42,6 +43,7 @@
     function restart() {
       $.get('/restart', function(r) {
         board.position(r);
+        document.getElementById("subtext").innerText = "Play!";
       });
     }
 
