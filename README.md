@@ -5,3 +5,5 @@ To run locally:
 git clone git@github.com:tphamdo/chess.git
 flask --app play run
 ```
+
+Open http://localhost:5000/
