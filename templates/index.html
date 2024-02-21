@@ -10,26 +10,38 @@
   </head>
   <body>
     <main>
-        <div id="board" style="width: 400px"></div>
+      <div id="board" style="width: 800px"></div>
+      <button onClick="restart()" style="height: 30px">Restart</button>
+      <p id="subtext" style="height: 30px">Play!</p>
     </main>
-    <h1>{{ board }}</h1>
   </body>
   <script type=text/javascript>
-    var board = Chessboard('board', 
+    var board = Chessboard('board',
       {
         position: 'start',
         draggable: true,
         onDrop: onDrop,
       })
-    console.log("hello")
 
     $.get('/', function(res, status, xhr) {
+      if (xhr.getResponseHeader("gameover") == "True") {
+        document.getElementById("subtext").innerText = "Game over!";
+      }
       board.position(xhr.getResponseHeader("fen"));
     });
 
     function onDrop(source, target, piece) {
-      $.get('/move', function(fen) {
-        board.position(fen);
+      $.get('/move', { "source":source, "target":target }, function(res, status, xhr) {
+        if (xhr.getResponseHeader("gameover") == "True") {
+          document.getElementById("subtext").innerText = "Game over!";
+        }
+        board.position(res);
+      });
+    }
+
+    function restart() {
+      $.get('/restart', function(r) {
+        board.position(r);
       });
     }
 
