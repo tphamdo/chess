@@ -14,15 +14,19 @@ class Value:
   DRAW = 0
 
   def __init__(self):
-    self.count = 0
+    self.memo = {}
+    self.cache_hit = 0
 
   def __call__(self, b):
-    self.count += 1
-    return self.value(b)
+    key = b.fen()
+    if key not in self.memo:
+      self.memo[key] = self.value(b)
+    else:
+      self.cache_hit += 1
+    
+    return self.memo[key]
 
   def value(self, b):
-    assert isinstance(b, chess.Board)
-
     if b.is_game_over():
       if b.result() == "1-0":
         return self.MAX
@@ -37,14 +41,12 @@ class Value:
     else:
       tot_val -= 0.05 * b.legal_moves.count()
 
-    for sq in chess.SQUARES:
-      piece = b.piece_type_at(sq)
-      if piece:
-        if b.color_at(sq) == chess.WHITE:
-          tot_val += self.values[piece]
-        else:
-          tot_val -= self.values[piece]
-
+    for p in b.piece_map().values():
+      val = self.values[p.piece_type]
+      if p.color == chess.WHITE:
+        tot_val += val
+      else:
+        tot_val -= val
 
     return tot_val
 

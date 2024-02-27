@@ -13,12 +13,17 @@ app = Flask(__name__)
 s = State()
 v = Value()
 
-MAX_DEPTH = 3
+MAX_DEPTH = 4
+ct = 0
 
 # TODO: prune search. there's a massive slowdown even at MAX_DEPTH=4.
-def minimax(b, d, outer=False):
+
+def minimax(b, d, alpha, beta, outer=False):
+  global ct
+  ct += 1
+
   if d >= MAX_DEPTH:
-    return v.value(b)
+    return v(b)
 
   if outer:
     oret = []
@@ -28,17 +33,36 @@ def minimax(b, d, outer=False):
   else:
     ret = Value.MAX
 
+
+  tmoves = []
   for move in b.legal_moves:
     b.push(move)
-    val = minimax(b, d+1)
+    tmoves.append((v(b), move))
+    b.pop()
+  tmoves = sorted(tmoves, key=lambda x: x[0], reverse=b.turn==chess.WHITE)
+  moves = [x[1] for x in tmoves]
+
+  # prune by only looking at top 5 moves -> beam search
+  if d>= 2:
+    moves = moves[:5]
+
+  for move in moves:
+    b.push(move)
+    val = minimax(b, d+1, alpha, beta)
     b.pop()
     if outer:
       oret.append((val, move))
 
     if b.turn == chess.WHITE:
       ret = max(ret, val)
+      if ret > beta:
+        return ret
+      alpha = max(alpha, ret)
     else:
       ret = min(ret, val)
+      if ret < alpha:
+        return ret
+      beta = min(beta, ret)
 
   if outer:
     return ret, oret
@@ -49,11 +73,16 @@ def do_computer_move():
   if s.board.is_game_over():
     return
 
-  val, moves = minimax(s.board, 0, outer=True)
+  global ct
+  ct = 0
+
+  val, moves = minimax(s.board, 0, Value.MIN, Value.MAX, outer=True)
   moves = sorted(moves, key=lambda x: x[0])
-  print(val)
+  print(f'looked at {ct} nodes')
   print(moves)
   s.board.push(moves[0][1])
+  print(f'doing computer move {moves[0][1]}')
+  print(f'found {v.cache_hit} cache hits in value.py')
 
 
   # random computer move
@@ -82,11 +111,9 @@ def move():
 
   move = chess.Move(src, to, promotion)
   if (move in s.board.legal_moves):
-    print("doing move: ", move)
+    print(f'doing human move: {move}')
     s.board.push(move)
-    print(v.value(s.board))
     do_computer_move()
-    print(v.value(s.board))
   else:
     print("invalid move")
 
